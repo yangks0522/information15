@@ -1,6 +1,6 @@
 from info import redis_store
 from . import index_blue
-from flask import render_template
+from flask import render_template ,current_app
 
 @index_blue.route("/")
 def hello_world():
@@ -27,3 +27,9 @@ def hello_world():
 
 
     return render_template("news/index.html")
+# 只需要写对应的接口,返回一张图片即可
+# 解决:current_app.send_static_file,自动static文件夹中寻找指定的资源
+@index_blue.route('/favicon.ico')
+def web_log():
+
+    return current_app.send_static_file("news/favicon.ico")
