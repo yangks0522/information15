@@ -8,12 +8,12 @@
 
 """
 
-from flask import Flask,session
+from flask import Flask, session
 
 from flask_sqlalchemy import SQLAlchemy
 from redis import StrictRedis
 from flask_session import Session
-
+from flask_wtf import CSRFProtect
 
 app = Flask(__name__)
 
@@ -28,10 +28,10 @@ class Config(object):
     REDIS_PORT = 6379
     # session配置信息
     SESSION_TYPE = "redis"
-    #redis服务器地址
+    # redis服务器地址
     SESSION_REDIS = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
-    SESSION_USE_SIGNER = True # session的签名信息
-    PERMANENT_SESSION_LIFETIME = 3600*24*2  # 有效期两天 单位秒
+    SESSION_USE_SIGNER = True  # session的签名信息
+    PERMANENT_SESSION_LIFETIME = 3600 * 24 * 2  # 有效期两天 单位秒
     SECRET_KEY = "asdasdasfasfassa"
 
 
@@ -45,8 +45,8 @@ redis_store = StrictRedis(host=Config.REDIS_HOST, port=Config.REDIS_PORT, decode
 # 初始化session,读取app上的配置信息
 Session(app)
 
-
-
+# 保护app使用CSRFProtect
+CSRFProtect(app)
 
 
 @app.route("/")
