@@ -2,16 +2,16 @@
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
-from flask import current_app
-
 from config import config_dict
 import redis
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from flask_wtf import CSRFProtect
-from info.modules.index import index_blue
 
+# 定义redis_store
+redis_store = None
 
+db = SQLAlchemy()
 def create_app(config_name):
     log_file()
 
@@ -21,9 +21,10 @@ def create_app(config_name):
     # 加载配置类信息
     app.config.from_object(config)
 
-    db = SQLAlchemy(app)
+    db.init_app(app)
 
     # 创建redis对象
+    global redis_store
     redis_store = redis.StrictRedis(host=config.REDIS_HOST, port=config.REDIS_PORT, decode_responses=True)
 
     # 初始化session,读取app上的配置信息
@@ -33,8 +34,9 @@ def create_app(config_name):
     CSRFProtect(app)
 
     # 注册首页蓝图到app中
+    from info.modules.index import index_blue
     app.register_blueprint(index_blue)
-    current_app(app.url_map)
+    # print(app.url_map)
 
     return app
 

@@ -1,10 +1,11 @@
+from info import redis_store
 from . import index_blue
 
 @index_blue.route("/")
 def hello_world():
     # 测试redis
-    # redis_store.set("name","zhangsan")
-    # print(redis_store.get("name"))
+    redis_store.set("name","zhangsan")
+    print(redis_store.get("name"))
 
     # 测试session存储数据
     # session["age"] = 15
