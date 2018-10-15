@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify ,current_app ,make_response
 from info import constants ,redis_store
 from info.modules.passport import passport_blue
 from info.utils.captcha.captcha import captcha
@@ -9,8 +9,7 @@ from info.utils.response_code import RET
 # 请求方式: GET
 # 请求参数: cur_id, pre_id
 # 返回值: 图片验证码
-# image_data	Image/jpg
-
+# image_data
 
 
 @passport_blue.route('/image_code')
@@ -32,10 +31,18 @@ def image_code():
         return jsonify(errno=RET.NODATA,errmsg="图片验证码编号不存在")
     # 3.生成图片验证码
     name, text, image_data = captcha.generate_captcha()
-    # 4.保存图片验证码到redis
-    redis_store.set("image_code:%s"%cur_id,text,constants.IMAGE_CODE_REDIS_EXPIRES)
-    # 5.判断是否由上个图片验证码编号,有则删除
-    if pre_id:
-        redis_store.delete("image_code%s"%pre_id)
+    try:
+        # 4.保存图片验证码到redis constants验证码有效期
+        redis_store.set("image_code:%s" % cur_id, text, constants.IMAGE_CODE_REDIS_EXPIRES)
+        # 5.判断是否由上个图片验证码编号,有则删除
+        if pre_id:
+            redis_store.delete("image_code%s" % pre_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR ,errmsg="图片验证码异常")
+
+
     # 6.返回图片验证码即可
-    return image_data
+    response = make_response(image_data)
+    response.headers["Content-Type"] = "image/jpg"
+    return response

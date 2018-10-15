@@ -232,6 +232,7 @@ function generateImageCode() {
     image_url = '/passport/image_code?cur_id='+imageCodeId + "&pre_id="+preimageCodeId
 
     //3.将地址设置到image标签的src属性中,为image_url
+    // image_url 替换 src的地址
     $('.get_pic_code').attr('src',image_url)
 
     //4.记录上一次的编号

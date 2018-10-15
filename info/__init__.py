@@ -40,6 +40,7 @@ def create_app(config_name):
     app.register_blueprint(index_blue)
     # print(app.url_map)
 
+    # 注册认证蓝图passport_blue到app中
     from info.modules.passport import passport_blue
     app.register_blueprint(passport_blue)
 
