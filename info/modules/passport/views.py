@@ -1,13 +1,81 @@
-
 import random
 import re
 
 from flask import request, jsonify, current_app, make_response, json
-from info import constants, redis_store
+from info import constants, redis_store, db
 from info.libs.yuntongxun.sms import CCP
+from info.models import User
 from info.modules.passport import passport_blue
 from info.utils.captcha.captcha import captcha
 from info.utils.response_code import RET
+
+
+# 功能:注册用户
+# 请求路径: /passport/register
+# 请求方式: POST
+# 请求参数: mobile, sms_code,password
+# 返回值: errno, errmsg
+#  mobile 手机号
+#  sms_code 短信验证码内容
+#  password 密码
+@passport_blue.route('/register', methods=["POST"])
+def register():
+    """
+    1.获取参数
+    2.校验参数,为空校验
+    3.手机号格式校验
+    4.根枯手机号,去redis中取出短信验证码
+    5.判断短信验证码是否过期
+    6.删除reids的短信验证码
+    7.判断传入的短信验证码和redis中取出的是否一致
+    8.创建用户对象,设置属性
+    9.保存用户到数据库mysql
+    10.返回响应
+    :return:
+    """
+    # 1.获取参数
+    # json_data = request.data
+    # dict_data = json.loads(json_data)
+    dict_data = request.json
+    # 2.校验参数,为空校验
+    mobile = dict_data.get("mobile")
+    sms_code = dict_data.get("sms_code")
+    password = dict_data.get("password")
+    # 3.手机号格式校验
+    if not re.match("1[35789]\d{9}", mobile):
+        return jsonify(errno=RET.PARAMERR, errmsg="手机号格式错误")
+    # 4.根枯手机号,去redis中取出短信验证码
+    try:
+        redis_sms_code = redis_store.get("sms_code:%s" % mobile)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取短信验证码异常")
+    # 5.判断短信验证码是否过期
+    if not redis_sms_code:
+        return jsonify(error=RET.DBERR, errmsg="短信验证码已过期")
+    # 6.删除reids的短信验证码
+    try:
+        redis_store.delete("sms_code:%s" % mobile)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DATAERR, errmsg="删除短信验证码异常")
+    # 7.判断传入的短信验证码和redis中取出的是否一致
+    if sms_code != redis_sms_code:
+        return jsonify(error=RET.DATAERR, errmsg="验证码输入错误")
+    # 8.创建用户对象,设置属性
+    user = User()
+    user.nick_name = mobile
+    user.password_hash = password  # 需要加密处理
+    user.mobile = mobile
+    # 9.保存用户到数据库mysql
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="注册用户失败")
+    # 10.返回响应
+    return jsonify(error=RET.OK, errmsg="注册成功")
 
 
 # 功能:发送短信验证码
@@ -35,10 +103,11 @@ def sms_code():
     :return:
     """
     # 1.获取参数
-    # post请求 request.data
-    json_data = request.data
-    # 将json转成字典
-    dict_data = json.loads(json_data)
+    # # post请求 request.data
+    # json_data = request.data
+    # # 将json转成字典
+    # dict_data = json.loads(json_data)
+    dict_data = request.json
     mobile = dict_data.get("mobile")
     image_code = dict_data.get("image_code")
     image_code_id = dict_data.get("image_code_id")
