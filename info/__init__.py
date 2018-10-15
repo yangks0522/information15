@@ -12,6 +12,8 @@ from flask_wtf import CSRFProtect
 redis_store = None
 
 db = SQLAlchemy()
+
+
 def create_app(config_name):
     log_file()
 
@@ -37,6 +39,9 @@ def create_app(config_name):
     from info.modules.index import index_blue
     app.register_blueprint(index_blue)
     # print(app.url_map)
+
+    from info.modules.passport import passport_blue
+    app.register_blueprint(passport_blue)
 
     return app
 
