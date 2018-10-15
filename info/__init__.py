@@ -33,7 +33,7 @@ def create_app(config_name):
     Session(app)
 
     # 保护app使用CSRFProtect
-    CSRFProtect(app)
+    # CSRFProtect(app)
 
     # 注册首页蓝图到app中
     from info.modules.index import index_blue
