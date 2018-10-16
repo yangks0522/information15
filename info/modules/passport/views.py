@@ -10,12 +10,32 @@ from info.utils.captcha.captcha import captcha
 from info.utils.response_code import RET
 
 
+# 功能:退出
+# 请求路径: /passport/logout
+# 请求方式: POST
+# 请求参数: 无
+# 返回值: errno, errmsg
+@passport_blue.route('/logout',methods=["POST"])
+def logout():
+    """
+    1.清除session
+    2.返回响应
+    :return:
+    """
+    # 1.清除session
+    session.pop("user_id", None)
+    session.pop("nick_name", None)
+    session.pop("mobile", None)
+    # 2.返回响应
+    return jsonify(errno=RET.OK, errmsg="退出成功")
+
+
 # 功能:用户登陆
 # 请求路径: /passport/login
 # 请求方式: POST
 # 请求参数: mobile,password
 # 返回值: errno, errmsg
-@passport_blue.route('/login',methods=["POST"])
+@passport_blue.route('/login', methods=["POST"])
 def login():
     """
     1.获取参数
@@ -48,7 +68,7 @@ def login():
         return jsonify(errno=RET.LOGINERR, errmsg="密码错误")
     # 6.保存用户的登陆状态到session
     session["user_id"] = user.id
-    session["user_name"] = user.nick_name
+    session["nick_name"] = user.nick_name
     session["mobile"] = user.mobile
     # 7.返回响应
     return jsonify(errno=RET.OK, errmsg="登陆成功")
