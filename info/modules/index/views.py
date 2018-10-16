@@ -1,33 +1,28 @@
+from flask import session
 from info import redis_store
+from info.models import User
 from . import index_blue
 from flask import render_template, current_app
 
 
 @index_blue.route("/")
 def hello_world():
-    # 测试redis
-    # redis_store.set("name","zhangsan")
-    # print(redis_store.get("name"))
+    # 获取用户的编号,从session
+    user_id = session.get("user_id")
+    # 判断用户是否存在
+    user = None
+    try:
+        user = User.query.get(user_id)
+    except Exception as e:
+        current_app.logger.error(e)
 
-    # 测试session存储数据
-    # session["age"] = 15
-    # print(session.get("age"))
+    # 将用户的信息转成字典
+    dict_data = {
+        # 如果user存在,返回左边,否则返回右边
+        "user_info": user.to_dict() if user else ""
+    }
 
-    # 输入记录信息
-    # 输入记录信息,可以代替print
-    # logging.debug("调试信息")
-    # logging.info("详细信息")
-    # logging.warning("警告信息")
-    # logging.error("错误信息")
-
-    # current_app 来输出
-    # current_app.logger.debug("调试信息2")
-    # current_app.logger.info("详细信息2")
-    # current_app.logger.warning("警告信息2")
-    # current_app.logger.error("错误信息2")
-
-
-    return render_template("news/index.html")
+    return render_template("news/index.html", data=dict_data)
 
 
 # 只需要写对应的接口,返回一张图片即可
