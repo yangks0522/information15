@@ -124,7 +124,7 @@ $(function(){
             "mobile":mobile,
             "password":password
         }
-        /*
+
         $.ajax({
             url:'/passport/login',
             type:'post',
@@ -141,7 +141,7 @@ $(function(){
 
             }
         })
-        */
+
     })
 
 
