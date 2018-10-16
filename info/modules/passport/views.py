@@ -255,7 +255,7 @@ def image_code():
         redis_store.set("image_code:%s" % cur_id, text, constants.IMAGE_CODE_REDIS_EXPIRES)
         # 5.判断是否由上个图片验证码编号,有则删除
         if pre_id:
-            redis_store.delete("image_code%s" % pre_id)
+            redis_store.delete("image_code:%s" % pre_id)
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="图片验证码异常")
