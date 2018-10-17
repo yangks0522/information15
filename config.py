@@ -6,6 +6,7 @@ class Config(object):
     # 数据库配置
     SQLALCHEMY_DATABASE_URI = "mysql://root:mysql@localhost:3306/information15"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True # 视图函数结束,失去链接时,会自动提交
     # redis配置
     REDIS_HOST = "127.0.0.1"
     REDIS_PORT = 6379

@@ -1,5 +1,6 @@
 import random
 import re
+from datetime import datetime
 
 from flask import request, jsonify, current_app, make_response, session
 from info import constants, redis_store, db
@@ -15,7 +16,7 @@ from info.utils.response_code import RET
 # 请求方式: POST
 # 请求参数: 无
 # 返回值: errno, errmsg
-@passport_blue.route('/logout',methods=["POST"])
+@passport_blue.route('/logout', methods=["POST"])
 def logout():
     """
     1.清除session
@@ -70,6 +71,10 @@ def login():
     session["user_id"] = user.id
     session["nick_name"] = user.nick_name
     session["mobile"] = user.mobile
+
+    # 记录用户最后一次登陆时间
+    user.last_login = datetime.now()
+
     # 7.返回响应
     return jsonify(errno=RET.OK, errmsg="登陆成功")
 
