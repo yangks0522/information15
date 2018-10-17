@@ -1,6 +1,6 @@
 from flask import session, jsonify
 from info import redis_store
-from info.models import User, News
+from info.models import User, News, Category
 from info.utils.response_code import RET
 from . import index_blue
 from flask import render_template, current_app
@@ -28,12 +28,24 @@ def hello_world():
     for news in news_list:
         click_news_list.append(news.to_dict())
 
+    # 查询所有的分类信息
+    try:
+        # Category 新闻分类
+        categories = Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR ,errmsg="分类查询失败")
+    # 将分类的对象列表转换为字典
+    category_list = []
+    for category in categories:
+        category_list.append(category.to_dict())
 
     # 将用户的信息转成字典
     dict_data = {
         # 如果user存在,返回左边,否则返回右边
         "user_info": user.to_dict() if user else "",
         "click_news_list":click_news_list,
+        "category":category_list,
     }
 
     return render_template("news/index.html", data=dict_data)
