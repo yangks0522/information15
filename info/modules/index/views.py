@@ -1,7 +1,8 @@
-from flask import request
+from flask import request, g
 from flask import session, jsonify
 from info import redis_store
 from info.models import User, News, Category
+from info.utils.common import user_login_data
 from info.utils.response_code import RET
 from . import index_blue
 from flask import render_template, current_app
@@ -13,6 +14,7 @@ from flask import render_template, current_app
 # 请求参数: cid,page,per_page
 # 返回值: data数据
 @index_blue.route('/newslist')
+@user_login_data
 def news_list():
     """
     1.获取参数
@@ -57,16 +59,8 @@ def news_list():
 
 
 @index_blue.route("/")
-def hello_world():
-    # 获取用户的编号,从session
-    user_id = session.get("user_id")
-    # 判断用户是否存在
-    user = None
-    try:
-        user = User.query.get(user_id)
-    except Exception as e:
-        current_app.logger.error(e)
-
+@user_login_data
+def show_index():
     # 根据数据库,根据点击量查询十条新闻
     try:
         news_list = News.query.order_by(News.clicks.desc()).limit(10).all()
@@ -93,7 +87,7 @@ def hello_world():
     # 将用户的信息转成字典
     dict_data = {
         # 如果user存在,返回左边,否则返回右边
-        "user_info": user.to_dict() if user else "",
+        "user_info": g.user.to_dict() if g.user else "",
         "click_news_list": click_news_list,
         "category": category_list,
     }

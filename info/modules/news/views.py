@@ -1,7 +1,8 @@
 from flask import abort
 from flask import current_app
+from flask import session
 
-from info.models import News
+from info.models import News, User
 from info.modules.news import news_blue
 from flask import render_template, jsonify
 from info.utils.response_code import RET
@@ -36,8 +37,20 @@ def news_detail(news_id):
     click_news_list = []
     for new in news_list:
         click_news_list.append(new.to_dict())
+
+    # 获取用户数据
+    # 获取用户的编号.从session
+    # user_id = session.get("user_id")
+    # user = None
+    # if user_id:
+    #     try:
+    #         user = User.query.get(user_id)
+    #     except Exception as e:
+    #         current_app.logger.error(e)
+    # 携带数据渲染页面
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
+        "user_info":g.user.to_dict() if g.user else "",
     }
     return render_template("news/detail.html", data=data)
