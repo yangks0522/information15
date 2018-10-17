@@ -1,6 +1,7 @@
-from flask import session
+from flask import session, jsonify
 from info import redis_store
-from info.models import User
+from info.models import User, News
+from info.utils.response_code import RET
 from . import index_blue
 from flask import render_template, current_app
 
@@ -16,10 +17,23 @@ def hello_world():
     except Exception as e:
         current_app.logger.error(e)
 
+    # 根据数据库,根据点击量查询十条新闻
+    try:
+        news_list = News.query.order_by(News.clicks.desc()).limit(10).all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR ,errmsg="查询新闻异常")
+    # 将新闻列表转换为字典列表
+    click_news_list = []
+    for news in news_list:
+        click_news_list.append(news.to_dict())
+
+
     # 将用户的信息转成字典
     dict_data = {
         # 如果user存在,返回左边,否则返回右边
-        "user_info": user.to_dict() if user else ""
+        "user_info": user.to_dict() if user else "",
+        "click_news_list":click_news_list,
     }
 
     return render_template("news/index.html", data=dict_data)

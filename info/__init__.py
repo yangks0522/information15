@@ -11,6 +11,8 @@ from flask_session import Session
 from flask_wtf import CSRFProtect
 
 # 定义redis_store
+from info.utils.common import index_class
+
 redis_store = None
 
 db = SQLAlchemy()
@@ -40,6 +42,10 @@ def create_app(config_name):
     # 注册首页蓝图到app中
     from info.modules.index import index_blue
     app.register_blueprint(index_blue)
+
+    # 将过滤器添加到过滤器模板中
+    app.add_template_filter(index_class,"index_class")
+
 
     @app.after_request
     def after_request(resp):
