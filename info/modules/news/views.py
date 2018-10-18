@@ -42,10 +42,16 @@ def news_detail(news_id):
     for new in news_list:
         click_news_list.append(new.to_dict())
 
+    # 查询当前用户,是否有收藏新闻
+    is_collected = False
+    if g.user and news in g.user.collection_news:
+        is_collected = True
+
     # 携带数据渲染页面
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
         "user_info":g.user.to_dict() if g.user else "",
+        "is_collected":is_collected,
     }
     return render_template("news/detail.html", data=data)
