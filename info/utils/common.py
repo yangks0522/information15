@@ -1,5 +1,4 @@
 # 定义公共代码
-
 # 自定义过滤器
 
 from flask import current_app, g, session
