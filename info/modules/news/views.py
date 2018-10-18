@@ -1,10 +1,13 @@
 from flask import abort
 from flask import current_app
+from flask import g
 from flask import session
 
 from info.models import News, User
 from info.modules.news import news_blue
 from flask import render_template, jsonify
+
+from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
 
@@ -16,6 +19,7 @@ from info.utils.response_code import RET
 
 
 @news_blue.route('/<int:news_id>')
+@user_login_data
 def news_detail(news_id):
     # 根据传入的新闻编号,获取新闻对象
     try:
