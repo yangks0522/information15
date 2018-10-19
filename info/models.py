@@ -58,6 +58,9 @@ class User(BaseModel, db.Model):
     # 当前用户所发布的新闻
     news_list = db.relationship('News', backref='user', lazy='dynamic')
 
+    # 当前用户所有点或的赞
+    comment_likes = db.relationship("CommentLike")
+
     @property  # 一个方法被property装饰之后,可以当成属性来使用
     def password(self):
         raise AttributeError("当前属性不可读")
