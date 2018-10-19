@@ -7,6 +7,73 @@ from flask import render_template, jsonify
 from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
+# 功能:回复
+# 请求路径: /news/<int:news_id>
+# 请求方式: GET
+# 请求参数:news_id
+# 返回值: detail.html页面, 用户,新闻, 热门新闻,收藏标记,新闻评论,data字典数据
+
+
+
+
+
+# 功能:新闻评论
+# 请求路径: /news/news_comment
+# 请求方式: POST
+# 请求参数:news_id,comment,parent_id, g.user
+# 返回值: errno,errmsg,评论字典
+
+@news_blue.route('/news_comment', methods=["POST"])
+@user_login_data
+def mews_comment():
+    """
+    1.判断用户是否登陆
+    2.获取参数
+    3.校验参数.为空校验
+    4.根据新闻编号,取出新闻
+    5.判断新闻对象是否存在
+    6.创建评论对象
+    7.保存到数据库
+    8.返回响应
+    :return:
+    """
+    # 1.判断用户是否登陆
+    if not g.user:
+        return jsonify(errno=RET.DBERR, errmsg="用户未登陆")
+    # 2.获取参数
+    news_id = request.json.get("news_id")
+    comments = request.json.get("comment")
+    parent_id = request.json.get("parent_id")
+    # 3.校验参数.为空校验
+    if not all([news_id, comments]):
+        return jsonify(errno=RET.DBERR, errmsg="参数不全")
+    # 4.根据新闻编号,取出新闻
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取新闻失败")
+    # 5.判断新闻对象是否存在
+    if not news:
+        return jsonify(errno=RET.NODATA, errmsg="新闻不存在")
+    # 6.创建评论对象
+    comment = Comment()
+    comment.user_id = g.user.id
+    comment.news_id = news_id
+    comment.content = comments
+    if parent_id:
+        comment.parent_id = parent_id
+    # 7.保存到数据库
+    try:
+        db.session.add(comment)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="评论失败")
+
+    # 8.返回响应
+    return jsonify(errno=RET.OK, errmsg="评论成功",data=comment.to_dict())
+
 
 # 功能:收藏&取消收藏
 # 请求路径: /news/news_collect
@@ -103,11 +170,22 @@ def news_detail(news_id):
     if g.user and news in g.user.collection_news:
         is_collected = True
 
+    # 查询所有的评论
+    try:
+        comments = Comment.query.filter(Comment.news_id == news_id).order_by(Comment.create_time.desc()).all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR ,errmsg="获取评论失败")
+    comments_list = []
+    for comment in comments:
+        comments_list.append(comment.to_dict())
+
     # 携带数据渲染页面
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
         "user_info": g.user.to_dict() if g.user else "",
         "is_collected": is_collected,
+        "comments":comments_list
     }
     return render_template("news/detail.html", data=data)
