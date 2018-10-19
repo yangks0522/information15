@@ -13,7 +13,7 @@ from info.utils.response_code import RET
 # 请求方式: POST
 # 请求参数:news_id,comment_id,action,g.user
 # 返回值: errno,errmsg
-@news_blue.route('/comment_like')
+@news_blue.route('/comment_like',methods=["POST"])
 @user_login_data
 def comment_like():
     """
@@ -65,10 +65,10 @@ def comment_like():
                 comment.like_count += 1
         else:
             # 判断用户是否点过赞
-            comments_like = CommentLike.query.filter(CommentLike.comment_id == comment_id,CommentLike.user_id == g.user.id).first()
-            if comments_like:
+            comment_likes = CommentLike.query.filter(CommentLike.comment_id == comment_id,CommentLike.user_id == g.user.id).first()
+            if comment_likes:
                 # 移除点赞对象
-                db.session.remove(comments_like)
+                db.session.remove(comment_likes)
 
                 # 更新点赞数量
                 comment.like_count -=1
@@ -238,13 +238,19 @@ def news_detail(news_id):
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="获取评论失败")
-    # 获取用户的所有点赞对象
-    comment_likes = g.user.comment_likes
+    try:
+        # 获取用户的所有点赞对象
+        comment_likes = []
+        if g.user:
+            comment_likes = g.user.comment_likes
 
-    # 获取用户所有点赞过的评论编号
-    comment_ids = []
-    for comment_like in comment_likes:
-        comment_ids.append(comment_like.comment_id)
+        # 获取用户所有点赞过的评论编号
+        comment_ids = []
+        for comment_like in comment_likes:
+            comment_ids.append(comment_like.comment_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR ,errmsg="获取点赞数据失败")
 
     # 将评论对象列表转成字典列表
     comments_list = []
