@@ -1,9 +1,6 @@
-from flask import abort
-from flask import current_app
-from flask import g
-from flask import session
-
-from info.models import News, User
+from flask import abort, current_app, g, session, json, request
+from info import db
+from info.models import News, User, Comment
 from info.modules.news import news_blue
 from flask import render_template, jsonify
 
@@ -11,12 +8,71 @@ from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
 
+# 功能:收藏&取消收藏
+# 请求路径: /news/news_collect
+# 请求方式: POST
+# 请求参数:news_id,action, g.user
+# 返回值: errno,errmsg
+@news_blue.route('/news_collect', methods=["POST"])
+@user_login_data
+def news_collect():
+    """
+    1.判断用户是否登陆
+    2.获取参数
+    3.校验参数
+    4.判断操作类型
+    5.根枯新闻编号取出新闻对象
+    6.判断新闻对象是否存在
+    7.根据操作类型,收藏或者取消收藏
+    8.返回响应
+    :return:
+    """
+    # 1.判断用户是否登陆
+    if not g.user:
+        return jsonify(errno=RET.SESSIONERR, errmsg="用户未登陆")
+    # 2.获取参数
+    # request.data可以获取未经处理过的原始数据，如果数据格式是json的，则取得的是json字符串，排序和请求参数一致
+    json_data = request.data
+    dict_data = json.loads(json_data)
+    news_id = dict_data.get("news_id")
+    action = dict_data.get("action")
+    # 3.校验参数
+    if not all([news_id, action]):
+        return jsonify(errno=RET.DBERR, errmsg="参数不全")
+    # 4.判断操作类型
+    if not action in ["collect", "cancel_collect"]:
+        return jsonify(errno=RET.DATAERR, errmsg="操作类型有误")
+    # 5.根枯新闻编号取出新闻对象
+    try:
+        news = News.query.get(news_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="新闻获取失败")
+
+    # 6.判断新闻对象是否存在
+    if not news:
+        return jsonify(errno=RET.DBERR, errmsg="新闻对象不存在")
+    # 7.根据操作类型,收藏或者取消收藏
+    try:
+        if action == "collect":
+            # 判断是否收藏过该新闻
+            if not news in g.user.collection_news:
+                g.user.collection_news.append(news)
+        else:
+            if news in g.user.collection_news:
+                g.user.collection_news.remove(news)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="操作失败")
+    # 8.返回响应
+    return jsonify(errno=RET.OK, errmsg="操作成功")
+
+
 # 功能: 获取新闻详细信息
 # 请求路径: /news/<int:news_id>
 # 请求方式: GET
 # 请求参数:news_id
 # 返回值: detail.html页面, 用户data字典数据
-
 
 @news_blue.route('/<int:news_id>')
 @user_login_data
@@ -51,7 +107,7 @@ def news_detail(news_id):
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
-        "user_info":g.user.to_dict() if g.user else "",
-        "is_collected":is_collected,
+        "user_info": g.user.to_dict() if g.user else "",
+        "is_collected": is_collected,
     }
     return render_template("news/detail.html", data=data)

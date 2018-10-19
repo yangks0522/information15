@@ -5,7 +5,6 @@ from flask import current_app, g, session
 from functools import wraps
 
 
-
 def index_class(index):
     if index == 1:
         return "first"
@@ -16,10 +15,11 @@ def index_class(index):
     else:
         return ""
 
+
 # 使用装饰器,封装用户登陆数据
 def user_login_data(view_func):
     @wraps(view_func)
-    def wrapper(*args,**kwargs):
+    def wrapper(*args, **kwargs):
         # 获取用户的编号,从session
         user_id = session.get("user_id")
 
@@ -35,5 +35,6 @@ def user_login_data(view_func):
         # 将用户数据封装到,g对象
         g.user = user
 
-        return view_func(*args,**kwargs)
+        return view_func(*args, **kwargs)
+
     return wrapper
