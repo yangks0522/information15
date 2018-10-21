@@ -264,12 +264,21 @@ def news_detail(news_id):
 
         comments_list.append(com_dict)
 
+    # 判断当前用户,是否由关注当前新闻的作者
+    is_followed = False
+    if g.user and news.user:
+        if g.user in news.user.followers:
+            is_followed = True
+
+
+
     # 携带数据渲染页面
     data = {
         "news": news.to_dict(),
         "click_news_list": click_news_list,
         "user_info": g.user.to_dict() if g.user else "",
         "is_collected": is_collected,
-        "comments": comments_list
+        "comments": comments_list,
+        "is_followed":is_followed
     }
     return render_template("news/detail.html", data=data)
