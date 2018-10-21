@@ -7,7 +7,54 @@ from info.utils.response_code import RET
 from . import user_blue
 
 
-# 功能描述: 获取我发布的新闻列表
+# 功能: 获取我的关注列表
+# 请求路径: /user/user_follow
+# 请求方式: GET
+# 请求参数:p
+# 返回值: 渲染user_follow.html页面,字典data数据
+@user_blue.route('/user_follow')
+@user_login_data
+def user_follow():
+    """
+    1.获取参数
+    2.参数类型转换
+    3.分页查询
+    4.获取到分页对象属性,总页数,当前页,当前页对象列表
+    5.对象列表转成字典列表
+    6.拼接数据,渲染页面
+    :return:
+    """
+    # 1.获取参数
+    page = request.args.get("p", "1")
+    # 2.参数类型转换
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+    # 3.分页查询
+    try:
+        paginate = g.user.followed.paginate(page, 2, False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取用户失败")
+    # 4.获取到分页对象属性,总页数,当前页,当前页对象列表
+    totalPage = paginate.pages
+    currentPage = paginate.page
+    items = paginate.items
+    # 5.对象列表转成字典列表
+    author_list = []
+    for author in items:
+        author_list.append(author.to_dict())
+    # 6.拼接数据,渲染页面
+    data = {
+        "totalPage": totalPage,
+        "currentPage": currentPage,
+        "author_list": author_list
+    }
+    return render_template("news/user_follow.html", data=data)
+
+
+# 功能: 获取我发布的新闻列表
 # 请求路径: /user/news_list
 # 请求方式:GET
 # 请求参数:p
