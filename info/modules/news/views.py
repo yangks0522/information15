@@ -8,12 +8,67 @@ from info.utils.common import user_login_data
 from info.utils.response_code import RET
 
 
+# 功能: 关注&取消关注
+# 请求路径: /news/followed_user
+# 请求方式: POST
+# 请求参数:user_id,action
+# 返回值: errno, errmsg
+@news_blue.route('/followed_user', methods=["POST"])
+@user_login_data
+def followed_user():
+    """
+    1.判断用户是否登陆
+    2.获取参数
+    3.校验参数,为空校验
+    4.判断操作类型
+    5.根据作者编号取出作者对象,判断作者对象是否存在
+    6.分局操作类型,关注&取消关注
+    7.返回响应
+    :return:
+    """
+    # 1.判断用户是否登陆
+    if not g.user:
+        return jsonify(errno=RET.NODATA, errmsg="用户未登录")
+    # 2.获取参数
+    author_id = request.json.get("user_id")
+    action = request.json.get("action")
+    # 3.校验参数,为空校验
+    if not all([action, author_id]):
+        return jsonify(errno=RET.DATAERR, errmsg="参数不全")
+    # 4.判断操作类型
+    if not action in ["follow", "unfollow"]:
+        return jsonify(errno=RET.DATAERR, errmsg="操作类型有误")
+    # 5.根据作者编号取出作者对象,判断作者对象是否存在
+    try:
+        author = User.query.get(author_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取用户失败")
+    if not author:
+        return jsonify(errno=RET.NODATA, errmsg="作者不存在")
+
+    try:
+        # 6.分局操作类型,关注&取消关注
+        if action == "follow":
+            if not g.user in author.followers:
+                author.followers.append(g.user)
+        else:
+            # 判断用户是否是否已经关注过作者了
+            if g.user in author.followers:
+                author.followers.remove(g.user)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="操作失败")
+    # 7.返回响应
+    return jsonify(errno=RET.OK, errmsg="操作成功")
+
+
 # 功能:点赞
 # 请求路径: /news/comment_like
 # 请求方式: POST
 # 请求参数:news_id,comment_id,action,g.user
 # 返回值: errno,errmsg
-@news_blue.route('/comment_like',methods=["POST"])
+@news_blue.route('/comment_like', methods=["POST"])
 @user_login_data
 def comment_like():
     """
@@ -52,7 +107,8 @@ def comment_like():
     try:
         if action == "add":
             # 判断用户是否点过赞
-            comments_like = CommentLike.query.filter(CommentLike.comment_id == comment_id,CommentLike.user_id == g.user.id).first()
+            comments_like = CommentLike.query.filter(CommentLike.comment_id == comment_id,
+                                                     CommentLike.user_id == g.user.id).first()
             if not comment_like:
                 # 创建点赞对象,设置属性
                 comments_like = CommentLike()
@@ -65,18 +121,19 @@ def comment_like():
                 comment.like_count += 1
         else:
             # 判断用户是否点过赞
-            comment_likes = CommentLike.query.filter(CommentLike.comment_id == comment_id,CommentLike.user_id == g.user.id).first()
+            comment_likes = CommentLike.query.filter(CommentLike.comment_id == comment_id,
+                                                     CommentLike.user_id == g.user.id).first()
             if comment_likes:
                 # 移除点赞对象
                 db.session.remove(comment_likes)
 
                 # 更新点赞数量
-                comment.like_count -=1
+                comment.like_count -= 1
     except Exception as e:
         current_app.logger.error(e)
         return jsonify(errno=RET.DBERR, errmsg="操作失败")
     # 8.返回响应
-    return jsonify(errno=RET.OK,errmsg="操作成功")
+    return jsonify(errno=RET.OK, errmsg="操作成功")
 
 
 # 功能:新闻评论
@@ -250,7 +307,7 @@ def news_detail(news_id):
             comment_ids.append(comment_like.comment_id)
     except Exception as e:
         current_app.logger.error(e)
-        return jsonify(errno=RET.DBERR ,errmsg="获取点赞数据失败")
+        return jsonify(errno=RET.DBERR, errmsg="获取点赞数据失败")
 
     # 将评论对象列表转成字典列表
     comments_list = []
@@ -270,8 +327,6 @@ def news_detail(news_id):
         if g.user in news.user.followers:
             is_followed = True
 
-
-
     # 携带数据渲染页面
     data = {
         "news": news.to_dict(),
@@ -279,6 +334,6 @@ def news_detail(news_id):
         "user_info": g.user.to_dict() if g.user else "",
         "is_collected": is_collected,
         "comments": comments_list,
-        "is_followed":is_followed
+        "is_followed": is_followed
     }
     return render_template("news/detail.html", data=data)
