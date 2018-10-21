@@ -1,14 +1,127 @@
-from flask import current_app
-from flask import g, jsonify
-from flask import redirect
-from flask import render_template
-from flask import request
-
-from info import constants
+from flask import current_app, g, jsonify, redirect, render_template, request
+from info import constants, db
+from info.models import Category, News
 from info.utils.image_storage import image_storage
 from info.utils.common import user_login_data
 from info.utils.response_code import RET
 from . import user_blue
+
+
+# 功能描述:新闻发布
+# 请求路径: /user/news_release
+# 请求方式:GET,POST
+# 请求参数:GET无, POST ,title, category_id,digest,index_image,content
+# 返回值:GET请求,user_news_release.html, data分类列表字段数据, POST,errno,errmsg
+@user_blue.route('/news_release', methods=['GET', 'POST'])
+def news_release():
+    """
+    1.判断请求方式是否时GET
+    2.如果是GET,携带参数渲染页面
+    3.获取post请求参数
+    4.校验参数
+    5.上传图片
+    6.判断图片是否上传成功
+    7.创建新闻对象,设置新闻属性
+    8.保存新闻到数据库中
+    9.返回响应
+    :return:
+    """
+    # 1.判断请求方式是否时GET
+    if request.method == "GET":
+        try:
+            categoles = Category.query.all()
+            categoles.pop(0)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="获取分类失败")
+        # 2.如果是GET,携带参数渲染页面
+        return render_template("news/user_news_release.html", categoles=categoles)
+    # 3.获取post请求参数
+    title = request.form.get("title")
+    category_id = request.form.get("category_id")
+    digest = request.form.get("digest")
+    index_image = request.files.get("index_image")
+    content = request.form.get("content")
+
+    # 4.校验参数
+    if not all([title, category_id, digest, index_image, content]):
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不全")
+    # 5.上传图片
+    try:
+        image_name = image_storage(index_image.read())
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.THIRDERR, errmsg="七牛云异常")
+    # 6.判断图片是否上传成功
+    if not image_name:
+        return jsonify(errno=RET.NODATA, errmsg="图片上传失败")
+    # 7.创建新闻对象,设置新闻属性
+    news = News()
+    news.title = title
+    news.source = g.user.nick_name
+    news.digest = digest
+    news.content = content
+    news.index_image_url = constants.QINIU_DOMIN_PREFIX + image_name
+    news.category_id = category_id
+    news.user_id = g.user.id
+    news.status = 1
+    # 8.保存新闻到数据库中
+    try:
+        db.session.add(news)
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.error(e)
+        db.session.rollback()
+        return jsonify(errno=RET.DBERR, errmsg="新闻发布失败")
+    # 9.返回响应
+    return jsonify(errno=RET.OK, errmsg="新闻发布成功")
+
+
+# 功能:获取我的收藏新闻
+# 请求路径: /user/ collection
+# 请求方式:GET
+# 请求参数:p(页数)
+# 返回值: user_collection.html页面
+@user_blue.route('/collection')
+@user_login_data
+def collection():
+    """
+    1.获取参数
+    2.参数类型转换
+    3.分页查询
+    4.获取到分页对象属性,总页数,当前页,当前页对象
+    5.将当前也对象列表,转成字典列表
+    6.渲染页面,携带数据
+    :return:
+    """
+    # 1.获取参数
+    page = request.args.get("p")
+    # 2.参数类型转换
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+    # 3.分页查询
+    try:
+        paginate = g.user.collection_news.paginate(page, 2, False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取新闻失败")
+    # 4.获取到分页对象属性,总页数,当前页,当前页对象
+    totalPage = paginate.pages
+    currentPage = paginate.page
+    items = paginate.items
+    # 5.将当前也对象列表,转成字典列表
+    news_list = []
+    for news in items:
+        news_list.append(news.to_dict())
+    # 6.渲染页面,携带数据
+    data = {
+        "totalPage": totalPage,
+        "currentPage": currentPage,
+        "news_list": news_list,
+    }
+    return render_template("news/user_collection.html", data=data)
 
 
 # 功能:修改密码
@@ -34,15 +147,16 @@ def pass_info():
     old_password = request.json.get("old_password")
     new_password = request.json.get("new_password")
     # 2.校验参数
-    if not all([old_password,new_password]):
-        return jsonify(errno=RET.DBERR,errmsg="参数不全")
+    if not all([old_password, new_password]):
+        return jsonify(errno=RET.DBERR, errmsg="参数不全")
     # 3.判断旧密码是否正确
     if not g.user.check_passowrd(old_password):
-        return jsonify(errno=RET.DATAERR,errmsg="旧密码不正确")
+        return jsonify(errno=RET.DATAERR, errmsg="旧密码不正确")
     # 4.设置新密码
     g.user.password = new_password
     # 5.返回响应
-    return jsonify(errno=RET.OK,errmsg="修改成功")
+    return jsonify(errno=RET.OK, errmsg="修改成功")
+
 
 # 功能:图片上传
 # 请求路径: /user/pic_info
