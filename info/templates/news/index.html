@@ -14,7 +14,7 @@
 {# 分类部分 #}
 {% block headerBlock %}
     {# 遍历分类信息 #}
-    {% for categorty in data.categories %}
+    {% for categorty in data.category %}
         <li class="{% if categorty.id == 1 %} active {% endif %}" data-cid="{{ categorty.id }}"><a href="javascript:;">{{ categorty.name }}</a></li>
     {% endfor %}
 {% endblock %}

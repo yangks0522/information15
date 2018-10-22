@@ -1,9 +1,8 @@
 # 初始化信息
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask
+from flask import Flask, render_template, g
 from flask.ext.wtf.csrf import generate_csrf
-
 from config import config_dict
 import redis
 from flask_sqlalchemy import SQLAlchemy
@@ -11,7 +10,7 @@ from flask_session import Session
 from flask_wtf import CSRFProtect
 
 # 定义redis_store
-from info.utils.common import index_class
+from info.utils.common import index_class, user_login_data
 
 redis_store = None
 
@@ -46,6 +45,15 @@ def create_app(config_name):
     # 将过滤器添加到过滤器模板中
     app.add_template_filter(index_class,"index_class")
 
+
+    # 捕捉404页面的异常
+    @app.errorhandler(404)
+    @user_login_data
+    def page_not_found(e):
+        data = {
+            "user_info":g.user.to_dict() if g.user else ""
+        }
+        return render_template("news/404.html",data=data)
 
     @app.after_request
     def after_request(resp):
