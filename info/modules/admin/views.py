@@ -43,6 +43,6 @@ def admin_login():
     session["user_id"] = admin.id
     session["nick_name"] = admin.nick_name
     session["mobile"] = admin.mobile
-    session["is_admin"] = True
+    session["is_admin"] = admin.is_admin
     # 7.重定向到首页
     return redirect("http://www.baidu.com")
