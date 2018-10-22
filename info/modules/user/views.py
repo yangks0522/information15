@@ -1,10 +1,71 @@
 from flask import current_app, g, jsonify, redirect, render_template, request
 from info import constants, db
-from info.models import Category, News
+from info.models import Category, News, User
 from info.utils.image_storage import image_storage
 from info.utils.common import user_login_data
 from info.utils.response_code import RET
 from . import user_blue
+
+
+
+
+
+# 功能:获取其他用户发布的新闻
+# 请求路径: /user/other_news_list
+# 请求方式: GET
+# 请求参数:p,user_id
+# 返回值: errno,errmsg
+@user_blue.route('/other_news_list')
+def other_news_list():
+    """
+    1.获取参数
+    2.校验参数,参数类型转换
+    3.根据作者编号取出作者对象,并判断是否存在
+    4.分页查询
+    5.获取分页对象属性,总页数,当前页,当前页对象列表
+    6.携带参数,返回响应
+    :return:
+    """
+    # 1.获取参数
+    page = request.args.get("p")
+    other_id = request.args.get("user_id")
+    # 2.校验参数,参数类型转换
+    if not other_id:
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不全")
+    try:
+        page = int(page)
+    except Exception as e:
+        page = 1
+    # 3.根据作者编号取出作者对象,并判断是否存在
+    try:
+        author = User.query.get(other_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="或者作者失败")
+    if not author:
+        return jsonify(errno=RET.NODATA, errmsg="作者不存在")
+    # 4.分页查询
+    try:
+        paginate = author.news_list.order_by(News.create_time.desc()).paginate(page, 2, False)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取新闻失败")
+
+    # 5.获取分页对象属性,总页数,当前页,当前页对象列表
+    total_page = paginate.pages
+    current_page = paginate.page
+    items = paginate.items
+
+    news_list = []
+    for news in items:
+        news_list.append(news.to_dict())
+    # 6.携带参数,返回响应
+    data = {
+        "total_page": total_page,
+        "current_page": current_page,
+        "news_list": news_list
+    }
+    return jsonify(errno=RET.OK, errmsg="获取成功", data=data)
 
 
 # 功能:作者详情页面
@@ -13,9 +74,39 @@ from . import user_blue
 # 请求参数:id
 # 返回值: 渲染other.html页面,字典data数据
 @user_blue.route('/other')
+@user_login_data
 def other_info():
+    """
+    1.获取参数
+    2.校验参数
+    3.通过作者编号,取出作者对象
+    4.判断作者对象是否存在
+    5.携带作者信息,到页面渲染
+    :return:
+    """
+    # 1.获取参数
+    author_id = request.args.get("id")
+    # 2.校验参数
+    if not author_id:
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不全")
+    # 3.通过作者编号,取出作者对象
+    try:
+        author = User.query.get(author_id)
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取作者失败")
+    # 4.判断作者对象是否存在
+    if not author:
+        return jsonify(errno=RET.DBERR, errmsg="获取作者失败")
+    if_followed = False
+    if g.user:
+        if g.user in author.followers:
+            is_followed = True
+    # 5.携带作者信息,到页面渲染
     data = {
-
+        "author_info": author.to_dict(),
+        "is_followed": is_followed,
+        "user_info": g.user.to_dict() if g.user else "",
     }
     return render_template("news/other.html", data=data)
 
@@ -95,7 +186,7 @@ def news_list():
 
     # 3.分页查询我发布的新闻
     try:
-        paginate = News.query.filter(News.user_id == g.user.id).order_by(News.create_time.desc()).paginate(page, 6,
+        paginate = News.query.filter(News.user_id == g.user.id).order_by(News.create_time.desc()).paginate(page, 2,
                                                                                                            False)
     except Exception as e:
         current_app.logger.error(e)
