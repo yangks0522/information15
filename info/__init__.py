@@ -43,17 +43,16 @@ def create_app(config_name):
     app.register_blueprint(index_blue)
 
     # 将过滤器添加到过滤器模板中
-    app.add_template_filter(index_class,"index_class")
-
+    app.add_template_filter(index_class, "index_class")
 
     # 捕捉404页面的异常
     @app.errorhandler(404)
     @user_login_data
     def page_not_found(e):
         data = {
-            "user_info":g.user.to_dict() if g.user else ""
+            "user_info": g.user.to_dict() if g.user else ""
         }
-        return render_template("news/404.html",data=data)
+        return render_template("news/404.html", data=data)
 
     @app.after_request
     def after_request(resp):

@@ -14,6 +14,8 @@ from . import admin_blue
 @admin_blue.route('/index')
 @user_login_data
 def admin_index():
+    # if not session.get("is_admin"):
+    #     return redirect("/")
     return render_template("admin/index.html",admin=g.user.to_dict() if g.user else "")
 
 
@@ -38,6 +40,9 @@ def admin_login():
     """
     # 1.判断是否是GET请求,直接渲染页面
     if request.method == "GET":
+        # 判断管理员是否已经登录过,如果登录过直接重定向到首页
+        if session.get("is_admin"):
+            return redirect("/admin/index")
         return render_template("admin/login.html")
     # 2. 如果是POST请求,获取参数
     username = request.form.get("username")
