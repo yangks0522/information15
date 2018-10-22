@@ -75,6 +75,10 @@ def create_app(config_name):
     from info.modules.user import user_blue
     app.register_blueprint(user_blue)
 
+    # 注册管理员蓝图admin_blue到app中
+    from info.modules.admin import admin_blue
+    app.register_blueprint(admin_blue)
+
     return app
 
 

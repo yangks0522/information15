@@ -144,9 +144,10 @@ def register():
         db.session.commit()
     except Exception as e:
         current_app.logger.error(e)
+        db.session.rollback()
         return jsonify(errno=RET.DBERR, errmsg="注册用户失败")
     # 10.返回响应
-    return jsonify(error=RET.OK, errmsg="注册成功")
+    return jsonify(errno=RET.OK, errmsg="注册成功")
 
 
 # 功能:发送短信验证码
