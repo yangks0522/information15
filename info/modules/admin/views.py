@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import current_app, redirect, render_template, request, session
 from flask import g
 
@@ -55,11 +55,28 @@ def user_count():
     except Exception as e:
         current_app.logger.error(e)
     # 4.查询时间段内活跃人数
+    active_date = []
+    active_count = []
+    for i in range(0, 31):
+        begin_date = day_starttime_data - timedelta(
+            days=i)  # timedelta()对象代表两个时间之间的时间差，两个date或datetime对象相减就可以返回一个timedelta对象
+        end_date = day_starttime_data - timedelta(days=i - 1)
+
+        active_date.append(begin_date.strftime("%Y-%m-%d"))  # strftime()函数接收以时间元组，并返回以可读字符串表示的当地时间
+
+        everyday_active_count = User.query.filter(User.last_login >= begin_date, User.last_login <= end_date,
+                                                  User.is_admin == False).count()
+        active_count.append(everyday_active_count)
+    active_count.reverse()
+    active_date.reverse()
+
     # 5.携带数据,渲染页面
     data = {
         "totel_count": totel_count,
         "month_count": month_count,
         "day_count": day_count,
+        "active_date": active_date,
+        "active_count": active_count,
     }
     return render_template("admin/user_count.html", data=data)
 
