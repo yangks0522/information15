@@ -6,11 +6,12 @@
 	<link rel="stylesheet" type="text/css" href="../../static/admin/css/reset.css">
 	<link rel="stylesheet" type="text/css" href="../../static/admin/css/main.css">
 	<script type="text/javascript" src="../../static/admin/js/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="../../static/news/js/main.js"></script>
 </head>
 <body>
 	<div class="header">
 		<a href="#" class="logo fl"><img src="../../static/admin/images/logo.png" alt="logo"></a>
-		<a href="#" class="logout fr">退 出</a>
+		<a href="#" onclick="logout()" class="logout fr">退 出</a>
 	</div>
 	
 	<div class="side_bar">
@@ -34,7 +35,7 @@
 			<ul class="sub_menu">
 				<li><a href="/admin/news_review" class="icon031" target="main_frame">新闻审核</a></li>
 				<li><a href="/admin/news_edit" class="icon032" target="main_frame">新闻版式编辑</a></li>
-				<li><a href="../../static/admin/html/news_type.html" class="icon034" target="main_frame">新闻分类管理</a></li>
+				<li><a href="/admin/news_category" class="icon034" target="main_frame">新闻分类管理</a></li>
 			</ul>
 		</div>
 	</div>

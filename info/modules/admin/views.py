@@ -3,13 +3,72 @@ from datetime import datetime, timedelta
 from flask import current_app, redirect, render_template, request, session, jsonify
 from flask import g
 
-from info import constants
+from info import constants, db
 from info import user_login_data
 from info.models import User, News, Category
 from info.utils.image_storage import image_storage
 
 from info.utils.response_code import RET
 from . import admin_blue
+
+
+# 功能:编辑分类
+# 请求路径: /admin/add_category
+# 请求方式: POST
+# 请求参数: id,name
+# 返回值:errno,errmsg
+@admin_blue.route('/add_category', methods=["POST"])
+def add_category():
+    # 1.获取参数
+    c_id = request.json.get("id")
+    c_name = request.json.get("name")
+    # 2.校验参数,为空校验
+    if not c_name:
+        return jsonify(errno=RET.PARAMERR, errmsg="参数不全")
+    # 3.根据编号判断是否增加
+    if c_id:  # 编辑
+        # 通过编号查询分类对象
+        try:
+            category = Category.query.get(c_id)
+        except Exception as e:
+            current_app.logger.error(e)
+            return jsonify(errno=RET.DBERR, errmsg="分类获取失败")
+
+        # 判断分类对象是否存在
+        if not category:
+            return jsonify(errno=RET.DATAERR, errmsg="分类不存在")
+        # 设置新的分类名字
+        category.name = c_name
+    else:
+        category = Category()
+        category.name = c_name
+        try:
+            db.session.add(category)
+            db.session.commit()
+        except Exception as e:
+            current_app.logger.error(e)
+            db.session.rollback()
+            return jsonify(errno=RET.DBERR, errmsg="分类创建失败")
+
+    # 4.返回响应
+    return jsonify(errno=RET.OK, errmsg="操作成功")
+
+
+# 功能:新闻分类管理
+# 请求路径: /admin/news_category
+# 请求方式: GET
+# 请求参数: GET,无
+# 返回值:GET,渲染news_type.html页面, data数据
+@admin_blue.route('/news_category')
+def news_category():
+    # 1.查询所有分类
+    try:
+        categories = Category.query.all()
+    except Exception as e:
+        current_app.logger.error(e)
+        return jsonify(errno=RET.DBERR, errmsg="获取分类失败")
+    # 2.携带分类渲染页面
+    return render_template("admin/news_type.html", categories=categories)
 
 
 # 新闻编辑详情
